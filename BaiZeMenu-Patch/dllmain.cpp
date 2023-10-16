@@ -2,22 +2,22 @@
 #pragma execution_character_set("utf-8")
 DWORD WINAPI go(LPVOID lp)
 {
-    if (AllocConsole()) {
-        freopen_s(reinterpret_cast<FILE**>(stdout), "CONOUT$", "w", stdout);
-        SetConsoleCP(CP_UTF8);
-        SetConsoleOutputCP(CP_UTF8);
-    }
-
+    //if (AllocConsole()) {
+    //    freopen_s(reinterpret_cast<FILE**>(stdout), "CONOUT$", "w", stdout);
+    //    SetConsoleCP(CP_UTF8);
+    //    SetConsoleOutputCP(CP_UTF8);
+    //}
+    //非调试请不要创建控制台
     uint64_t base_addr = NULL;
     do
     {
         base_addr = (uint64_t)GetModuleHandleA("BaiZe.dll");
         std::this_thread::yield();
-        std::cout << "Waiting BaiZe.dll to patch" << std::endl;
+        //std::cout << "Waiting BaiZe.dll to patch" << std::endl;
     } while (!base_addr);
 
     auto ntdll = GetModuleHandleA("ntdll.dll");
-    if (ntdll != NULL)
+    if (ntdll)
     {
         auto addr = GetProcAddress(ntdll, "NtProtectVirtualMemory");
         byte vmpbyte[] = { 0x4C,0x8B,0xD1,0xB8,0x50 };  //修补VMP内存保护
@@ -30,9 +30,19 @@ DWORD WINAPI go(LPVOID lp)
             }
         }
     }
-    byte pbyte[] = { 0x0F, 0x85 };  //验证错误跳转
+    //byte pbyte[] = { 0x0F, 0x85 };  //验证错误跳转
+    //PDWORD O;
+    //auto off = base_addr + 0x26DCA6;
+    //if (VirtualProtect((void*)off, sizeof(pbyte) + 1, PAGE_EXECUTE_READWRITE, (PDWORD)&O) != 0)
+    //{
+    //    if (memcmp((void*)off, pbyte, sizeof(pbyte)) != 0)
+    //    {
+    //        memcpy((void*)off, pbyte, sizeof(pbyte));
+    //    }
+    //}
+    byte pbyte[] = { 0x90, 0x90, 0x90, 0x90, 0x90 };  //直接nop整个验证函数，完全脱网
     PDWORD O;
-    auto off = base_addr + 0x26DCA6;
+    auto off = base_addr + 0x26DC4D;
     if (VirtualProtect((void*)off, sizeof(pbyte) + 1, PAGE_EXECUTE_READWRITE, (PDWORD)&O) != 0)
     {
         if (memcmp((void*)off, pbyte, sizeof(pbyte)) != 0)
@@ -60,7 +70,7 @@ DWORD WINAPI go(LPVOID lp)
     }
     while (true)
     {
-        *(bool*)(base_addr + 0x566694) = true;  //确保g_runnning永远为true不会卸载
+        //*(bool*)(base_addr + 0x566694) = true;  //确保g_runnning永远为true不会卸载
         SetConsoleTitleW(L"Cracked by HolyWu | 白泽破解交流群939816109");
     }
     return 0;
