@@ -20,7 +20,7 @@ DWORD WINAPI go(LPVOID lp)
     if (ntdll != NULL)
     {
         auto addr = GetProcAddress(ntdll, "NtProtectVirtualMemory");
-        byte vmpbyte[] = { 0x4C,0x8B,0xD1,0xB8,0x50 };
+        byte vmpbyte[] = { 0x4C,0x8B,0xD1,0xB8,0x50 };  //修补VMP内存保护
         PDWORD O1;
         if (VirtualProtect(addr, sizeof(vmpbyte) + 1, PAGE_EXECUTE_READWRITE, (PDWORD)&O1) != 0)
         {
@@ -30,7 +30,7 @@ DWORD WINAPI go(LPVOID lp)
             }
         }
     }
-    byte pbyte[] = { 0x0F, 0x85 };
+    byte pbyte[] = { 0x0F, 0x85 };  //验证错误跳转
     PDWORD O;
     auto off = base_addr + 0x26DCA6;
     if (VirtualProtect((void*)off, sizeof(pbyte) + 1, PAGE_EXECUTE_READWRITE, (PDWORD)&O) != 0)
@@ -40,7 +40,7 @@ DWORD WINAPI go(LPVOID lp)
             memcpy((void*)off, pbyte, sizeof(pbyte));
         }
     }
-    byte pbyte1[] = { 0x75 };
+    byte pbyte1[] = { 0x75 };   //防篡改g_running为false
     off = base_addr + 0x26E535;
     if (VirtualProtect((void*)off, sizeof(pbyte1) + 1, PAGE_EXECUTE_READWRITE, (PDWORD)&O) != 0)
     {
@@ -49,7 +49,7 @@ DWORD WINAPI go(LPVOID lp)
             memcpy((void*)off, pbyte1, sizeof(pbyte1));
         }
     }
-    byte pbyte3[] = { 0x90, 0x90, 0x90, 0x90, 0x90 };
+    byte pbyte3[] = { 0x90, 0x90, 0x90, 0x90, 0x90 };   //此函数会导致崩溃所以nop
     off = base_addr + 0x26E3C7;
     if (VirtualProtect((void*)off, sizeof(pbyte3) + 1, PAGE_EXECUTE_READWRITE, (PDWORD)&O) != 0)
     {
@@ -60,7 +60,7 @@ DWORD WINAPI go(LPVOID lp)
     }
     while (true)
     {
-        *(bool*)(base_addr + 0x566694) = true;
+        *(bool*)(base_addr + 0x566694) = true;  //确保g_runnning永远为true不会卸载
         SetConsoleTitleW(L"Cracked by HolyWu | 白泽破解交流群939816109");
     }
     return 0;
