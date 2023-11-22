@@ -1,5 +1,14 @@
 ﻿#include "pch.h"
 #pragma execution_character_set("utf-8")
+
+void patcher(uint64_t addr, unsigned char* bytes, int numBytes)
+{
+    DWORD oldProtect;
+    VirtualProtect((PVOID)addr, numBytes, PAGE_EXECUTE_READWRITE, &oldProtect);
+    memcpy((PVOID)addr, bytes, numBytes);
+    VirtualProtect((PVOID)addr, numBytes, oldProtect, &oldProtect);
+}
+
 DWORD WINAPI go(LPVOID lp)
 {
     //if (AllocConsole()) {
@@ -16,61 +25,40 @@ DWORD WINAPI go(LPVOID lp)
         //std::cout << "Waiting BaiZe.dll to patch" << std::endl;
     } while (!base_addr);
 
-    //auto ntdll = GetModuleHandleA("ntdll.dll");
-    //if (ntdll)
-    //{
-    //    auto addr = GetProcAddress(ntdll, "NtProtectVirtualMemory");
-    //    byte vmpbyte[] = { 0x4C,0x8B,0xD1,0xB8,0x50 };  //修补VMP内存保护
-    //    PDWORD O1;
-    //    if (VirtualProtect(addr, sizeof(vmpbyte) + 1, PAGE_EXECUTE_READWRITE, (PDWORD)&O1) != 0)
-    //    {
-    //        if (memcmp(addr, vmpbyte, sizeof(vmpbyte)) != 0)
-    //        {
-    //            memcpy(addr, vmpbyte, sizeof(vmpbyte));
-    //        }
-    //    }
-    //}
-    //byte pbyte[] = { 0x0F, 0x85 };  //验证错误跳转
-    //PDWORD O;
-    //auto off = base_addr + 0x26DCA6;
-    //if (VirtualProtect((void*)off, sizeof(pbyte) + 1, PAGE_EXECUTE_READWRITE, (PDWORD)&O) != 0)
-    //{
-    //    if (memcmp((void*)off, pbyte, sizeof(pbyte)) != 0)
-    //    {
-    //        memcpy((void*)off, pbyte, sizeof(pbyte));
-    //    }
-    //}
-    byte pbyte[] = { 0x90, 0x90, 0x90, 0x90, 0x90 };  //直接nop整个验证函数，完全脱网
+    auto ntdll = GetModuleHandleA("ntdll.dll");
+    if (ntdll)
+    {
+        auto addr = GetProcAddress(ntdll, "NtProtectVirtualMemory");
+        byte vmpbyte[] = { 0x4C,0x8B,0xD1,0xB8,0x50 };  //修补VMP内存保护
+        PDWORD O1;
+        if (VirtualProtect(addr, sizeof(vmpbyte) + 1, PAGE_EXECUTE_READWRITE, (PDWORD)&O1) != 0)
+        {
+            if (memcmp(addr, vmpbyte, sizeof(vmpbyte)) != 0)
+            {
+                memcpy(addr, vmpbyte, sizeof(vmpbyte));
+            }
+        }
+    }
+    byte pbyte[] = { 0x90, 0x90, 0x90, 0x90, 0x90 };
     PDWORD O;
-    auto off = base_addr + 0x26DE66;
-    if (VirtualProtect((void*)off, sizeof(pbyte) + 1, PAGE_EXECUTE_READWRITE, (PDWORD)&O) != 0)
-    {
-        if (memcmp((void*)off, pbyte, sizeof(pbyte)) != 0)
-        {
-            memcpy((void*)off, pbyte, sizeof(pbyte));
-        }
-    }
-    byte pbyte1[] = { 0x75 };   //防篡改g_running为false
-    off = base_addr + 0x26E8AE;
-    if (VirtualProtect((void*)off, sizeof(pbyte1) + 1, PAGE_EXECUTE_READWRITE, (PDWORD)&O) != 0)
-    {
-        if (memcmp((void*)off, pbyte1, sizeof(pbyte1)) != 0)
-        {
-            memcpy((void*)off, pbyte1, sizeof(pbyte1));
-        }
-    }
-    //byte pbyte3[] = { 0x90, 0x90, 0x90, 0x90, 0x90 };   //此函数会导致崩溃所以nop
-    //off = base_addr + 0x26E711;
-    //if (VirtualProtect((void*)off, sizeof(pbyte3) + 1, PAGE_EXECUTE_READWRITE, (PDWORD)&O) != 0)
-    //{
-    //    if (memcmp((void*)off, pbyte3, sizeof(pbyte3)) != 0)
-    //    {
-    //        memcpy((void*)off, pbyte3, sizeof(pbyte3));
-    //    }
-    //}
+    auto off = base_addr + 0x27C2AB;    //验证函数
+    patcher(off, pbyte, 5);
+    off = base_addr + 0x27C289; //验证函数
+    patcher(off, pbyte, 5);
+    off = base_addr + 0x27C29F; //验证函数
+    patcher(off, pbyte, 5);
+    off = base_addr + 0x27C38A; //检测闪退
+    patcher(off, pbyte, 5);
+    off = base_addr + 0x27C373; //检测闪退
+    patcher(off, pbyte, 5);
+    off = base_addr + 0x27CB36; //可能的干扰
+    patcher(off, pbyte, 5);
+    off = base_addr + 0x27CB3B; //可能的干扰
+    patcher(off, pbyte, 5);
+    off = base_addr + 0x28B38A; //检测卡死
+    patcher(off, pbyte, 5);
     while (true)
     {
-        //*(bool*)(base_addr + 0x566694) = true;  //确保g_runnning永远为true不会卸载
         SetConsoleTitleW(L"Cracked by HolyWu | 白泽破解交流群939816109");
     }
     return 0;
